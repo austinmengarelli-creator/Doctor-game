@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Step2-Style Pixel Trivia Prototype</title>
+<style>
+  :root{
+    --bg:#f3f6ff;
+    --panel:#ffffff;
+    --accent:#6b8cff;
+    --muted:#6b7280;
+    --correct:#1abc9c;
+    --wrong:#e74c3c;
+    --pixel: 2px;
+    font-family: "Lucida Grande", Arial, Helvetica, sans-serif;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#e8edf9);-webkit-font-smoothing:antialiased}
+  .app {
+    max-width:900px;
+    margin:20px auto;
+    background:transparent;
+    padding:12px;
+  }
+
+  /* Game container for phone-sized layout */
+  .game {
+    background:var(--panel);
+    border-radius:12px;
+    box-shadow: 0 8px 30px rgba(79,84,110,0.12);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 14px;
+    background:linear-gradient(90deg,#fff, #f7f9ff);
+    border-bottom:1px solid rgba(16,24,40,0.04);
+  }
+  header .title{
+    display:flex;gap:10px;align-items:center;
+  }
+  .logo {
+    width:44px;height:44px;border-radius:8px;background:linear-gradient(180deg,var(--accent),#4c6cff);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:18px;box-shadow: 0 6px 12px rgba(76,108,255,0.15);
+  }
+  .title h1{margin:0;font-size:16px}
+  .title p{margin:0;font-size:12px;color:var(--muted)}
+
+  .hud {display:flex;gap:10px;align-items:center}
+  .btn {background:transparent;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:13px}
+  .btn.primary{background:var(--accent);color:white}
+  .stat {font-size:13px;color:var(--muted);padding:6px 10px;border-radius:8px;background:#f3f6ff}
+
+  /* main scene area */
+  .scene {
+    display:flex;
+    gap:12px;
+    padding:14px;
+    align-items:flex-start;
+  }
+  .left {
+    flex:1 1 55%;
+    min-width:260px;
+    background:linear-gradient(180deg,#fff,#fbfcff);
+    border-radius:10px;padding:12px;border:1px solid rgba(16,24,40,0.03);
+    box-shadow: inset 0 -6px 24px rgba(15,23,42,0.02);
+  }
+  .right {
+    flex:1 1 45%;
+    min-width:260px;
+    display:flex;flex-direction:column;gap:12px;
+    padding:12px;
+  }
+
+  /* Pixel-art stage */
+  .stage {
+    height:220px;
+    position:relative;
+    background:linear-gradient(180deg,#edf3ff,#fff);
+    border-radius:8px;
+    overflow:hidden;
+    border:1px solid rgba(16,24,40,0.02);
+  }
+  /* floor shadow */
+  .stage::after{
+    content:"";position:absolute;left:0;right:0;bottom:0;height:28px;background:linear-gradient(180deg,transparent,rgba(0,0,0,0.06));pointer-events:none
+  }
+
+  /* Doctor sprite built with CSS boxes (pixel-ish) */
+  .doctor {
+    position:absolute;
+    bottom:18px;
+    left:-120px;
+    width:80px;
+    height:120px;
+    transform:translateZ(0);
+    transition:left 700ms linear;
+    will-change:left;
+    display:flex;align-items:flex-end;justify-content:center;
+    pointer-events:none;
+  }
+  .doctor.walk-in{left:18px}
+  .sprite {
+    width:72px;height:100px;position:relative;
+    image-rendering:pixelated;
+  }
+  /* Simple pixel components */
+  .sprite .head { width:36px;height:28px;background:#f4c9a6;border-radius:6px;position:absolute;left:18px;top:0;box-shadow:inset 0 -3px 0 rgba(0,0,0,0.03)}
+  .sprite .hair { width:36px;height:10px;background:#2d2d2d;border-top-left-radius:6px;border-top-right-radius:6px;position:absolute;left:18px;top:-2px}
+  .sprite .body {width:44px;height:50px;background:#4c6cff;position:absolute;left:14px;top:28px;border-radius:6px}
+  .sprite .coat {width:56px;height:28px;background:linear-gradient(180deg,#fff,#f0f6ff);position:absolute;left:8px;top:48px;border-radius:4px;box-shadow:inset 0 -6px 0 rgba(0,0,0,0.02)}
+  .sprite .steth {position:absolute;left:34px;top:58px;width:6px;height:28px;border-radius:4px;background:linear-gradient(180deg,#1f2937,#0f1720);transform:rotate(-20deg)}
+  .sprite .legs {position:absolute;left:20px;top:78px;width:36px;height:20px;display:flex;gap:6px;justify-content:center}
+  .sprite .legs div{width:12px;height:18px;background:#2a334a;border-radius:3px}
+
+  /* speech bubble */
+  .speech {
+    position:absolute;left:110px;top:12px;max-width:56%;
+    background:linear-gradient(180deg,#fff,#f9fbff);
+    padding:8px 10px;border-radius:10px;border:1px solid rgba(16,24,40,0.04);
+    box-shadow:0 6px 18px rgba(16,24,40,0.06);
+    font-size:13px;color:#0f172a;line-height:1.15;
+    transform-origin:left top;
+    animation: float 2.6s ease-in-out infinite;
+  }
+  .speech:after{content:"";position:absolute;left:-8px;top:18px;border:8px solid transparent;border-right-color:#fff}
+  @keyframes float {0%{transform:translateY(0)}50%{transform:translateY(-5px)}100%{transform:translateY(0)}}
+
+  /* patient silhouette */
+  .patient-wrap{position:absolute;right:18px;bottom:8px;width:220px;height:220px;display:flex;align-items:center;justify-content:center}
+  svg.patient {width:180px;height:180px;filter:drop-shadow(0 8px 14px rgba(32,41,63,0.08));}
+
+  /* hotspots */
+  .hotspot{cursor:pointer}
+  .hotspot circle{transition: r .18s ease, fill .18s}
+  .hotspot:hover circle{r:12;fill:#fff8c0}
+  .finding {
+    position:absolute;left:12px;bottom:12px;background:#fff;padding:8px;border-radius:8px;border:1px solid rgba(16,24,40,0.04);display:none;font-size:13px;color:#0f172a;box-shadow:0 8px 24px rgba(16,24,40,0.06)
+  }
+
+  /* vignette text */
+  .vignette {font-size:14px;color:#0f172a;padding:10px 6px}
+  .meta {font-size:12px;color:var(--muted);margin-top:6px}
+
+  /* answers */
+  .answers {display:flex;flex-direction:column;gap:8px;padding:8px}
+  .choice {
+    background:#fbfdff;border-radius:10px;padding:10px;border:1px solid rgba(16,24,40,0.04);cursor:pointer;font-size:14px;
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
+  }
+  .choice.disabled{opacity:.6;cursor:default}
+  .choice.correct{background:linear-gradient(90deg,#ecfff6,#dff7ef);border-color:rgba(26,188,156,0.16);box-shadow:0 6px 12px rgba(26,188,156,0.06)}
+  .choice.wrong{background:linear-gradient(90deg,#fff4f4,#ffecec);border-color:rgba(231,76,60,0.08);box-shadow:0 6px 12px rgba(231,76,60,0.06)}
+  .choice span.opt {font-weight:700;color:var(--accent);width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;background:#eef2ff}
+  .countdown {font-weight:700;color:var(--muted);font-size:14px}
+
+  /* explanation panel */
+  .explain {padding:10px;background:#fbfbff;border-radius:10px;border:1px solid rgba(16,24,40,0.03);font-size:13px;color:#0f172a}
+  .explain .why {margin-top:8px;color:var(--muted);font-size:12px}
+
+  footer.controls {display:flex;gap:8px;align-items:center;justify-content:space-between;padding:12px;border-top:1px solid rgba(16,24,40,0.04);background:linear-gradient(180deg,transparent,#fff)}
+  .small {font-size:12px;color:var(--muted)}
+
+  /* small screens adapt */
+  @media (max-width:520px){
+    .scene{flex-direction:column}
+    .left,.right{min-width:auto}
+    .speech{left:12px;right:12px;max-width:86%}
+    .patient-wrap{position:static;height:160px;margin-top:6px;display:flex;justify-content:center}
+  }
+  /* summary screen */
+  .summary {padding:14px}
+  .flag-list {display:flex;flex-direction:column;gap:8px}
+  .tiny {font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="game" role="application" aria-label="Step 2 style trivia prototype">
+    <header>
+      <div class="title">
+        <div class="logo">S2</div>
+        <div>
+          <h1>Step2 Pixel Tutor (Prototype)</h1>
+          <p>Playful study rounds — 90s per question — silent mode</p>
+        </div>
+      </div>
+
+      <div class="hud">
+        <div class="stat" id="score">Score: 0</div>
+        <div class="stat" id="qidx">Q 0 / 5</div>
+        <button class="btn" id="flagBtn" title="Flag this question">⚑ Flag</button>
+        <button class="btn" id="reviewFlagsBtn" title="Review flagged">Review Flags</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="scene" aria-live="polite">
+        <div class="left">
+          <div class="stage" id="stage" aria-hidden="false">
+            <div class="doctor" id="doctor" aria-hidden="true">
+              <div class="sprite" role="img" aria-label="Doctor sprite">
+                <div class="hair"></div>
+                <div class="head"></div>
+                <div class="body"></div>
+                <div class="coat"></div>
+                <div class="steth"></div>
+                <div class="legs"><div></div><div></div></div>
+              </div>
+            </div>
+
+            <div class="speech" id="speech" style="display:none"></div>
+
+            <div class="patient-wrap" id="patientWrap" style="display:none">
+              <!-- Patient SVG silhouette with hotspots -->
+              <svg class="patient" viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="false">
+                <!-- body -->
+                <g id="sil">
+                  <ellipse cx="60" cy="140" rx="28" ry="6" fill="#dbe9ff"/>
+                  <rect x="36" y="60" width="48" height="60" rx="12" fill="#fff"/>
+                  <rect x="40" y="16" width="40" height="48" rx="20" fill="#ffe9d1"/>
+                  <circle cx="60" cy="34" r="10" fill="#f4c9a6"/>
+                </g>
+
+                <!-- hotspots: chest, abdomen, left arm, right leg, head -->
+                <g id="hotspots" transform="">
+                  <g class="hotspot" data-id="lungs" tabindex="0" role="button" aria-label="Chest hotspot" style="cursor:pointer">
+                    <circle cx="60" cy="64" r="10" fill="#fffbeb" stroke="#f2c94c" stroke-width="1.2"></circle>
+                    <text x="60" y="68" font-size="6" text-anchor="middle" fill="#6b7280">chest</text>
+                  </g>
+                  <g class="hotspot" data-id="abd" tabindex="0" role="button" aria-label="Abdomen hotspot" style="cursor:pointer">
+                    <circle cx="60" cy="92" r="8" fill="#fff8f2" stroke="#fb7c6f" stroke-width="1.2"></circle>
+                    <text x="60" y="95" font-size="6" text-anchor="middle" fill="#6b7280">abd</text>
+                  </g>
+                  <g class="hotspot" data-id="leftarm" tabindex="0" role="button" aria-label="Left arm hotspot" style="cursor:pointer">
+                    <circle cx="38" cy="86" r="6" fill="#eef9ff" stroke="#7ed0ff" stroke-width="1.2"></circle>
+                    <text x="38" y="89" font-size="5" text-anchor="middle" fill="#6b7280">L arm</text>
+                  </g>
+                  <g class="hotspot" data-id="rightleg" tabindex="0" role="button" aria-label="Right leg hotspot" style="cursor:pointer">
+                    <circle cx="76" cy="130" r="6" fill="#fff8f2" stroke="#c0c0ff" stroke-width="1.2"></circle>
+                    <text x="76" y="133" font-size="5" text-anchor="middle" fill="#6b7280">R leg</text>
+                  </g>
+                  <g class="hotspot" data-id="head" tabindex="0" role="button" aria-label="Head hotspot" style="cursor:pointer">
+                    <circle cx="60" cy="34" r="8" fill="#fff8f2" stroke="#d1d1d1" stroke-width="1.2"></circle>
+                    <text x="60" y="36" font-size="5" text-anchor="middle" fill="#6b7280">Head</text>
+                  </g>
+                </g>
+              </svg>
+            </div>
+
+            <div class="finding" id="findingBox"></div>
+          </div>
+
+          <div class="vignette" id="vignette">Loading vignette...</div>
+          <div class="meta" id="meta">Specialty · Difficulty</div>
+        </div>
+
+        <aside class="right">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="countdown" id="timer">90</div>
+            <div class="tiny">Time remaining (seconds)</div>
+          </div>
+
+          <div class="answers" id="answers" role="list">
+            <!-- choices injected here -->
+          </div>
+
+          <div class="explain" id="explain" style="display:none">
+            <div id="resultText" style="font-weight:700"></div>
+            <div class="why" id="explainText"></div>
+          </div>
+
+          <div style="display:flex;gap:8px;align-items:center;justify-content:center">
+            <button class="btn primary" id="nextBtn" disabled>Next ▶</button>
+            <button class="btn" id="restartBtn">Restart</button>
+          </div>
+
+        </aside>
+      </section>
+
+      <footer class="controls">
+        <div class="small">Prototype — questions are original study-style vignettes for practice only.</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn" id="showSummaryBtn">Summary</button>
+          <button class="btn" id="exportBtn">Export JSON</button>
+        </div>
+      </footer>
+    </main>
+
+    <!-- Summary / Flags modal -->
+    <div id="overlay" style="display:none;position:fixed;inset:0;background:rgba(8,10,20,0.45);backdrop-filter:blur(2px);align-items:center;justify-content:center;z-index:40">
+      <div style="background:white;border-radius:12px;max-width:720px;width:92%;padding:16px;">
+        <h3 style="margin:0 0 8px 0">Session Summary</h3>
+        <div id="summaryContent"></div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+          <button class="btn" id="closeOverlay">Close</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* --------------------------
+  Prototype question bank (5 Qs)
+  Each question includes:
+  - id, specialty, difficulty
+  - vignette (short)
+  - pe: array of hotspot ids that if clicked reveal findings
+  - image: optional (we'll use small inline svg if needed)
+  - choices: array of 5 choices (one marked correctIndex)
+  - explanation
+---------------------------*/
+const QUESTIONS = [
+  {
+    id: "IM1",
+    specialty: "Internal Medicine",
+    difficulty: "Medium",
+    vignette: "A 62-year-old man with a history of hypertension presents with progressive dyspnea over 2 weeks. On exam: bibasilar crackles, elevated JVP, and pitting edema. Which finding best indicates systolic heart failure?",
+    pe: ["lungs"],
+    choices: [
+      "Reduced ejection fraction on echocardiogram",
+      "Preserved ejection fraction on echocardiogram",
+      "Isolated diastolic dysfunction without dilation",
+      "Normal BNP with impaired exercise tolerance",
+      "Right-sided pleural effusion only"
+    ],
+    correctIndex: 0,
+    explanation: "Systolic heart failure is characterized by reduced left ventricular ejection fraction (HFrEF). Findings like elevated JVP and crackles reflect congestion but the defining test is reduced EF on echo."
+  },
+
+  {
+    id: "Sx1",
+    specialty: "Surgery",
+    difficulty: "Medium",
+    vignette: "A 45-year-old woman presents after blunt abdominal trauma. She is hypotensive with diffuse abdominal tenderness. FAST exam shows free fluid. Which is the MOST appropriate next step?",
+    pe: ["abd"],
+    choices: [
+      "CT abdomen with contrast",
+      "Immediate exploratory laparotomy",
+      "Observation and repeat exam in 6 hours",
+      "Diagnostic peritoneal lavage",
+      "Administer oral contrast and schedule MRI"
+    ],
+    correctIndex: 1,
+    explanation: "In an unstable trauma patient with positive FAST and signs of peritonitis or shock, immediate exploratory laparotomy is indicated rather than CT because of the need for urgent hemorrhage control."
+  },
+
+  {
+    id: "OBGYN1",
+    specialty: "OB/Gyn",
+    difficulty: "Medium",
+    vignette: "A 28-year-old G1P0 at 39 weeks has contractions and sudden onset of vaginal bleeding with fetal heart rate decelerations. Which diagnosis is most concerning and requires immediate action?",
+    pe: ["abd"],
+    choices: [
+      "Placental abruption",
+      "Vasa previa with intact membranes",
+      "Minor cervical varices",
+      "False labor with hemorrhoidal bleeding",
+      "Threatened abortion"
+    ],
+    correctIndex: 0,
+    explanation: "Placental abruption can cause sudden bleeding, uterine tenderness, and fetal distress; it is an obstetric emergency requiring rapid stabilization and often urgent delivery."
+  },
+
+  {
+    id: "Peds1",
+    specialty: "Pediatrics",
+    difficulty: "Medium",
+    vignette: "A 6-month-old infant presents with cough, wheeze, and low-grade fever during RSV season. On exam: intercostal retractions and wheezing. Which management is most appropriate initially?",
+    pe: ["rightleg","leftarm"],
+    choices: [
+      "Supportive care with hydration and contact precautions",
+      "Immediate intubation and mechanical ventilation",
+      "Begin high-dose oral corticosteroids",
+      "Administer antibiotics for presumed bacterial pneumonia",
+      "Routine chest physiotherapy and home discharge"
+    ],
+    correctIndex: 0,
+    explanation: "Most infants with bronchiolitis (commonly RSV) are managed supportively with hydration and monitoring; severe cases may need oxygen or airway support, but routine antibiotics or steroids are not indicated."
+  },
+
+  {
+    id: "Psych1",
+    specialty: "Psychiatry",
+    difficulty: "Medium",
+    vignette: "A 30-year-old woman reports 2 months of low mood, anhedonia, poor sleep, and guilt. She has no psychosis or suicidal intent. Which is the best initial management step in primary care?",
+    pe: ["head"],
+    choices: [
+      "Assess safety, start psychotherapy and consider SSRI",
+      "Immediate electroconvulsive therapy (ECT)",
+      "Start benzodiazepines for long-term use",
+      "Prescribe high-dose antipsychotic medication",
+      "Recommend strict isolation and bed rest"
+    ],
+    correctIndex: 0,
+    explanation: "Initial management includes assessing safety (suicidality), initiating psychotherapy (CBT) and considering an SSRI; ECT and antipsychotics are not first-line without severe features."
+  }
+];
+
+/* ---------- App State ---------- */
+let state = {
+  order: [],        // indices of QUESTIONS in randomized order
+  current: 0,       // index in order
+  score: 0,
+  answered: {},     // qid -> {chosenIndex, correct}
+  flags: loadFlags(), // object of flagged question ids
+  timer: null,
+  timeLeft: 90,
+  running: false
+};
+
+/* ---------- Utility helpers ---------- */
+function $(sel){return document.querySelector(sel)}
+function $all(sel){return Array.from(document.querySelectorAll(sel))}
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+function clamp(n,a,b){return Math.max(a,Math.min(b,n))}
+
+/* ---------- Storage for flags ---------- */
+function loadFlags(){
+  try {
+    const raw = localStorage.getItem('s2_flags_v1');
+    return raw ? JSON.parse(raw) : {};
+  } catch(e){ return {};}
+}
+function saveFlags(){
+  localStorage.setItem('s2_flags_v1', JSON.stringify(state.flags));
+}
+
+/* ---------- Render / Flow ---------- */
+function startSession(){
+  state.order = shuffle([...Array(QUESTIONS.length).keys()]);
+  state.current = 0;
+  state.score = 0;
+  state.answered = {};
+  saveState(); // optional later expansion
+  renderQuestion();
+  updateHUD();
+}
+
+function renderQuestion(){
+  stopTimer();
+  clearFinding();
+  const qIndex = state.order[state.current];
+  const q = QUESTIONS[qIndex];
+  $('#vignette').textContent = "Loading...";
+  $('#meta').textContent = `${q.specialty} · ${q.difficulty}`;
+  $('#score').textContent = `Score: ${state.score}`;
+  $('#qidx').textContent = `Q ${state.current+1} / ${QUESTIONS.length}`;
+
+  // animate doctor in and show speech
+  const doctor = $('#doctor');
+  doctor.classList.remove('walk-in');
+  $('#speech').style.display='none';
+  $('#patientWrap').style.display='none';
+  setTimeout(()=>{ doctor.classList.add('walk-in') }, 80);
+  setTimeout(()=>{ $('#speech').style.display='block'; $('#speech').textContent = q.vignette }, 700);
+  setTimeout(()=>{ $('#patientWrap').style.display='block' }, 700);
+
+  // populate hotspots for this question: show all hotspots but only some reveal meaningful text
+  const hotspotEls = $all('.hotspot');
+  hotspotEls.forEach(el=>{
+    const id = el.getAttribute('data-id');
+    el.style.opacity = q.pe.includes(id) ? 1 : 0.45;
+    el.setAttribute('aria-disabled', q.pe.includes(id)?'false':'true');
+  });
+
+  // build answer choices (always 5)
+  const choicesEl = $('#answers');
+  choicesEl.innerHTML='';
+  // make array of {text,origIndex}
+  const choices = q.choices.map((t,i)=>({t,i}));
+  // shuffle
+  shuffle(choices);
+  choices.forEach((c, idx)=>{
+    const btn = document.createElement('button');
+    btn.className='choice';
+    btn.setAttribute('data-orig',c.i);
+    btn.setAttribute('role','button');
+    btn.innerHTML = `<span class="opt">${String.fromCharCode(65+idx)}</span><div style="flex:1;text-align:left">${c.t}</div>`;
+    btn.addEventListener('click', ()=> chooseAnswer(idx, c.i, btn));
+    choicesEl.appendChild(btn);
+  });
+
+  // clear explanation and disable next
+  $('#explain').style.display='none';
+  $('#resultText').textContent='';
+  $('#explainText').textContent='';
+  $('#nextBtn').disabled = true;
+
+  // timer start
+  state.timeLeft = 90;
+  $('#timer').textContent = state.timeLeft;
+  startTimer();
+
+  // update flag button
+  const qid = q.id;
+  $('#flagBtn').textContent = state.flags[qid] ? '⚑ Flagged' : '⚑ Flag';
+  $('#flagBtn').setAttribute('aria-pressed', state.flags[qid] ? 'true' : 'false');
+
+  updateHUD();
+}
+
+/* ---------- Timer ---------- */
+function startTimer(){
+  state.running = true;
+  $('#timer').textContent = state.timeLeft;
+  state.timer = setInterval(()=>{
+    state.timeLeft--;
+    $('#timer').textContent = state.timeLeft;
+    if(state.timeLeft<=0){
+      clearInterval(state.timer);
+      state.running = false;
+      handleTimeout();
+    }
+  }, 1000);
+}
+function stopTimer(){
+  if(state.timer) { clearInterval(state.timer); state.timer = null; state.running=false; }
+}
+function handleTimeout(){
+  // auto-mark as incorrect and show explanation
+  const qIndex = state.order[state.current];
+  const q = QUESTIONS[qIndex];
+  state.answered[q.id] = {chosenIndex:null, correct:false, timedOut:true};
+  showExplanation(null, false, q);
+}
+
+/* ---------- Answer logic ---------- */
+function chooseAnswer(displayIdx, chosenOrigIndex, btnEl){
+  // prevent multiple answers
+  const qIndex = state.order[state.current];
+  const q = QUESTIONS[qIndex];
+  if(state.answered[q.id]) return; // already answered
+
+  // determine if correct
+  const isCorrect = chosenOrigIndex === q.correctIndex;
+  state.answered[q.id] = {chosenIndex:chosenOrigIndex, correct:isCorrect, timedOut:false};
+  if(isCorrect) state.score++;
+
+  // show styling on choices
+  $all('.choice').forEach((c, i)=>{
+    c.classList.add('disabled');
+    const orig = parseInt(c.getAttribute('data-orig'),10);
+    if(orig === q.correctIndex) c.classList.add('correct');
+    if(orig === chosenOrigIndex && !isCorrect) c.classList.add('wrong');
+  });
+
+  stopTimer();
+  showExplanation(chosenOrigIndex, isCorrect, q);
+  updateHUD();
+}
+
+function showExplanation(chosenOrigIndex, isCorrect, q){
+  $('#explain').style.display='block';
+  if(chosenOrigIndex===null) {
+    $('#resultText').textContent = `Time! Correct: ${q.choices[q.correctIndex]}`;
+  } else {
+    $('#resultText').textContent = isCorrect ? 'Correct ✔' : `Incorrect ✖ — Correct: ${q.choices[q.correctIndex]}`;
+  }
+  $('#explainText').textContent = q.explanation;
+  $('#nextBtn').disabled = false;
+}
+
+/* ---------- Navigation ---------- */
+function nextQuestion(){
+  if(state.current < state.order.length-1){
+    state.current++;
+    renderQuestion();
+  } else {
+    showSummary();
+  }
+}
+
+function restart(){
+  if(confirm("Restart session? Your progress will reset.")){
+    startSession();
+  }
+}
+
+/* ---------- Hotspots behavior ---------- */
+function clearFinding(){ $('#findingBox').style.display='none'; $('#findingBox').textContent=''; }
+function showFinding(text){
+  const el = $('#findingBox');
+  el.style.display='block';
+  el.textContent = text;
+}
+
+/* map hotspot ids to example findings for each question.
+   If a hotspot is present in the question's pe array, we show a targeted finding.
+*/
+function hotspotFindingForCurrent(id){
+  const qIndex = state.order[state.current];
+  const q = QUESTIONS[qIndex];
+  // tailored simple findings
+  const map = {
+    lungs: "Exam: bibasilar crackles and prolonged expiratory wheeze.",
+    abd: "Exam: diffuse abdominal tenderness and guarding; BP low—concern for hemorrhage.",
+    leftarm: "Exam: capillary refill normal, pulses intact.",
+    rightleg: "Exam: mild diffuse erythema, no obvious deformity.",
+    head: "Exam: patient appears fatigued, no focal neuro deficits."
+  };
+  // If the hotspot is listed in the question's pe array, return a relevant string; else generic
+  if(q.pe.includes(id)) return map[id] || "Exam finding: notable abnormality.";
+  return "No remarkable finding on focused exam.";
+}
+
+/* ---------- HUD updates ---------- */
+function updateHUD(){
+  $('#score').textContent = `Score: ${state.score}`;
+  $('#qidx').textContent = `Q ${state.current+1} / ${QUESTIONS.length}`;
+}
+
+/* ---------- Flags ---------- */
+$('#flagBtn').addEventListener('click', ()=>{
+  const qIndex = state.order[state.current];
+  const q = QUESTIONS[qIndex];
+  if(state.flags[q.id]) delete state.flags[q.id];
+  else state.flags[q.id] = q;
+  saveFlags();
+  $('#flagBtn').textContent = state.flags[q.id] ? '⚑ Flagged' : '⚑ Flag';
+});
+
+$('#reviewFlagsBtn').addEventListener('click', showFlagReview);
+
+function showFlagReview(){
+  const keys = Object.keys(state.flags);
+  if(keys.length===0){ alert("No flagged questions yet."); return; }
+  const html = keys.map(k=>{
+    const q = state.flags[k];
+    return `<div style="padding:8px;border-bottom:1px solid #f1f5ff"><strong>${q.id}</strong> — ${q.specialty}<div class="tiny" style="margin-top:6px">${q.vignette}</div></div>`;
+  }).join('');
+  showOverlay(`<h4>Flagged (${keys.length})</h4>${html}`);
+}
+
+/* ---------- Summary modal ---------- */
+function showSummary(){
+  stopTimer();
+  const total = QUESTIONS.length;
+  const correctCount = Object.values(state.answered).filter(a=>a.correct).length;
+  const flagged = Object.keys(state.flags).length;
+  let summaryHtml = `<div class="summary"><p class="tiny">You answered ${Object.keys(state.answered).length} of ${total} questions.</p>
+  <p><strong>Score: ${correctCount} / ${total}</strong></p>
+  <p class="tiny">Flagged questions: ${flagged}</p>
+  <hr />`;
+  summaryHtml += "<h4>Answers</h4>";
+  summaryHtml += "<div>";
+  state.order.forEach((qi, idx)=>{
+    const q = QUESTIONS[qi];
+    const ans = state.answered[q.id];
+    const chosenText = (ans && ans.chosenIndex!==null) ? q.choices[ans.chosenIndex] : '<em>Unanswered</em>';
+    const correctText = q.choices[q.correctIndex];
+    summaryHtml += `<div style="padding:6px 0;border-bottom:1px dashed #f3f6ff"><strong>Q${idx+1} ${q.id}</strong> — ${q.specialty}<div class="tiny">${q.vignette}</div><div style="margin-top:6px">Your answer: ${chosenText}<br><strong>Correct:</strong> ${correctText}</div></div>`;
+  });
+  summaryHtml += "</div></div>";
+  showOverlay(summaryHtml);
+}
+
+/* overlay helpers */
+function showOverlay(html){
+  const overlay = $('#overlay');
+  $('#summaryContent').innerHTML = html;
+  overlay.style.display = 'flex';
+}
+$('#closeOverlay').addEventListener('click', ()=>{ $('#overlay').style.display='none'; });
+
+/* export JSON (current question pack) */
+$('#exportBtn').addEventListener('click', ()=>{
+  const payload = {questions:QUESTIONS, flags:state.flags};
+  const json = JSON.stringify(payload, null, 2);
+  // create file and trigger download
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'step2_trivia_export.json';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+/* navigation */
+$('#nextBtn').addEventListener('click', nextQuestion);
+$('#restartBtn').addEventListener('click', restart);
+$('#showSummaryBtn').addEventListener('click', showSummary);
+
+/* hotspot clicks */
+$all('.hotspot').forEach(h=>{
+  h.addEventListener('click', (ev)=>{
+    const id = h.getAttribute('data-id');
+    const txt = hotspotFindingForCurrent(id);
+    showFinding(txt);
+  });
+  h.addEventListener('keydown', (ev)=>{
+    if(ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); h.click(); }
+  });
+});
+
+/* clicking patient area hides finding */
+$('#patientWrap').addEventListener('click', (ev)=>{
+  // only hide if click on backdrop, not on hotspot circle text
+  if(ev.target.closest('.hotspot')) return;
+  clearFinding();
+});
+
+/* Save state (light) */
+function saveState(){ localStorage.setItem('s2_state_v1', JSON.stringify({order:state.order,current:state.current,score:state.score,answered:state.answered})); }
+function loadState(){
+  try {
+    const raw = localStorage.getItem('s2_state_v1');
+    if(!raw) return false;
+    const d = JSON.parse(raw);
+    if(!d.order) return false;
+    state.order = d.order; state.current = d.current; state.score = d.score; state.answered = d.answered || {};
+    return true;
+  } catch(e){ return false; }
+}
+
+/* handle timeout or page unload save */
+window.addEventListener('beforeunload', ()=>{ saveState(); saveFlags(); });
+
+/* initial start */
+(function init(){
+  // if user has saved state, start fresh for prototype
+  startSession();
+})();
+
+</script>
+</body>
+</html>
