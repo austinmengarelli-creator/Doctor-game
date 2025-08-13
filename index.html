@@ -90,116 +90,48 @@
   }
 
   /* Doctor sprite built with CSS boxes (pixel-ish) */
- <!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Doctor-Patient Scene</title>
-<style>
-  body { background: #f4f4f4; font-family: sans-serif; text-align: center; }
-  canvas { background: #fff; border: 1px solid #ccc; }
-</style>
-</head>
-<body>
-
-<h2 id="question">A 72-year-old woman presents with hip pain.</h2>
-<canvas id="scene" width="500" height="300"></canvas>
-
-<script>
-const canvas = document.getElementById('scene');
-const ctx = canvas.getContext('2d');
-
-function drawDoctor(x, y) {
-  ctx.fillStyle = '#000';
-  // Head
-  ctx.beginPath();
-  ctx.arc(x, y - 40, 10, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Body (white coat higher up)
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(x - 10, y - 30, 20, 40); // coat torso
-  ctx.strokeRect(x - 10, y - 30, 20, 40);
-
-  // Legs
-  ctx.strokeStyle = '#000';
-  ctx.beginPath();
-  ctx.moveTo(x, y + 10);
-  ctx.lineTo(x - 10, y + 30);
-  ctx.moveTo(x, y + 10);
-  ctx.lineTo(x + 10, y + 30);
-  ctx.stroke();
-
-  // Arms
-  ctx.beginPath();
-  ctx.moveTo(x, y - 20);
-  ctx.lineTo(x - 20, y);
-  ctx.moveTo(x, y - 20);
-  ctx.lineTo(x + 20, y);
-  ctx.stroke();
-}
-
-function drawPatient(x, y, gender, elderly) {
-  ctx.fillStyle = '#000';
-  // Head
-  ctx.beginPath();
-  ctx.arc(x, y - 40, 10, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Body
-  if (gender === 'female') {
-    // Dress
-    ctx.fillStyle = '#99ccff';
-    ctx.beginPath();
-    ctx.moveTo(x - 10, y - 30);
-    ctx.lineTo(x + 10, y - 30);
-    ctx.lineTo(x + 20, y + 10);
-    ctx.lineTo(x - 20, y + 10);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-  } else {
-    // Shirt/pants
-    ctx.fillStyle = '#99cc99';
-    ctx.fillRect(x - 10, y - 30, 20, 40);
-    ctx.strokeRect(x - 10, y - 30, 20, 40);
+  .doctor {
+    position:absolute;
+    bottom:18px;
+    left:-120px;
+    width:80px;
+    height:120px;
+    transform:translateZ(0);
+    transition:left 700ms linear;
+    will-change:left;
+    display:flex;align-items:flex-end;justify-content:center;
+    pointer-events:none;
   }
-
-  // Legs
-  ctx.strokeStyle = '#000';
-  ctx.beginPath();
-  ctx.moveTo(x - 5, y + 10);
-  ctx.lineTo(x - 10, y + 30);
-  ctx.moveTo(x + 5, y + 10);
-  ctx.lineTo(x + 10, y + 30);
-  ctx.stroke();
-
-  // Arms
-  ctx.beginPath();
-  ctx.moveTo(x, y - 20);
-  ctx.lineTo(x - 20, y);
-  ctx.moveTo(x, y - 20);
-  ctx.lineTo(x + 20, y);
-  ctx.stroke();
-
-  // Cane if elderly
-  if (elderly) {
-    ctx.strokeStyle = '#663300';
-    ctx.beginPath();
-    ctx.moveTo(x + 20, y - 5);
-    ctx.lineTo(x + 20, y + 25);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(x + 20, y - 5, 3, Math.PI, 0);
-    ctx.stroke();
+  .doctor.walk-in{left:18px}
+  .sprite {
+    width:72px;height:100px;position:relative;
+    image-rendering:pixelated;
   }
-}
+  /* Simple pixel components */
+  .sprite .head { width:36px;height:28px;background:#f4c9a6;border-radius:6px;position:absolute;left:18px;top:0;box-shadow:inset 0 -3px 0 rgba(0,0,0,0.03)}
+  .sprite .hair { width:36px;height:10px;background:#2d2d2d;border-top-left-radius:6px;border-top-right-radius:6px;position:absolute;left:18px;top:-2px}
+  .sprite .body {width:44px;height:50px;background:#4c6cff;position:absolute;left:14px;top:28px;border-radius:6px}
+  .sprite .coat {width:56px;height:28px;background:linear-gradient(180deg,#fff,#f0f6ff);position:absolute;left:8px;top:48px;border-radius:4px;box-shadow:inset 0 -6px 0 rgba(0,0,0,0.02)}
+  .sprite .steth {position:absolute;left:34px;top:58px;width:6px;height:28px;border-radius:4px;background:linear-gradient(180deg,#1f2937,#0f1720);transform:rotate(-20deg)}
+  .sprite .legs {position:absolute;left:20px;top:78px;width:36px;height:20px;display:flex;gap:6px;justify-content:center}
+  .sprite .legs div{width:12px;height:18px;background:#2a334a;border-radius:3px}
 
-// Clear & draw scene
-ctx.clearRect(0, 0, canvas.width, canvas.height);
-drawDoctor(120, 160);
-drawPatient(300, 200, 'female', true);
+  /* speech bubble */
+  .speech {
+    position:absolute;left:110px;top:12px;max-width:56%;
+    background:linear-gradient(180deg,#fff,#f9fbff);
+    padding:8px 10px;border-radius:10px;border:1px solid rgba(16,24,40,0.04);
+    box-shadow:0 6px 18px rgba(16,24,40,0.06);
+    font-size:13px;color:#0f172a;line-height:1.15;
+    transform-origin:left top;
+    animation: float 2.6s ease-in-out infinite;
+  }
+  .speech:after{content:"";position:absolute;left:-8px;top:18px;border:8px solid transparent;border-right-color:#fff}
+  @keyframes float {0%{transform:translateY(0)}50%{transform:translateY(-5px)}100%{transform:translateY(0)}}
 
+  /* patient silhouette */
+  .patient-wrap{position:absolute;right:18px;bottom:8px;width:220px;height:220px;display:flex;align-items:center;justify-content:center}
+  svg.patient {width:180px;height:180px;filter:drop-shadow(0 8px 14px rgba(32,41,63,0.08));}
 
   /* hotspots */
   .hotspot{cursor:pointer}
